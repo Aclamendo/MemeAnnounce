@@ -1,0 +1,16 @@
+# This file contains the lists of messages used by the /meme command
+# There are two primary lists of messages:
+  # The generic messages that will be sent as is
+  # The custom messages that will replace content with a string specified on command usage
+
+# Messages must be specified with a message name followed by a ": " with the message after it
+# the name and the message must be surrounded by single quotes
+meme:
+  # List of static messages that will be broadcast upon call of /meme
+  staticMessage:
+    - 'helloworld: Hello World! &cThis is a test.'
+    - 'test2: test2'
+  # List of dynamic messages that will replace %fill% with a specified name
+  dynamicMessage:
+    - 'dyntest: Dynamic test for filling: %fill%&c. '
+    - 'dyntest2: Test for two fills %fill% ||| %fill% |||.'

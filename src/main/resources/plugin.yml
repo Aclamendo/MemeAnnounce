@@ -1,0 +1,7 @@
+name: MemeAnnounce
+version: '${project.version}'
+main: net.wycre.memeannounce.Main
+api-version: 1.18
+authors: [ wycre ]
+description: Adds a command that will broadcast a random message specified in config.yml. With a number of variatons.
+website: www.wycre.net
