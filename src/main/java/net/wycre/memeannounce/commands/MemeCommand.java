@@ -10,13 +10,18 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static net.wycre.memeannounce.utils.CommonStrings.*;
+
+
+/*
+ * TODO:
+ *  - Handle permissions for different command options
+ *  - Add a help context
+ *  - Add color support for dynamic input
+ */
 
 /**
  * Handle /meme command
@@ -25,11 +30,12 @@ public class MemeCommand implements TabExecutor {
     // Instance vars
     private final Main main;
     private FileConfiguration config;
-    private Logger log;
-    private Map<String, String> staticMap;
-    private Map<String, String> dynamicMap;
-    private List<String> staticKeyList;
-    private List<String> dynamicKeyList;
+    private final Logger log;
+    private final Map<String, String> staticMap = new HashMap<>();
+    private final Map<String, String> dynamicMap = new HashMap<>();
+    private final List<String> staticKeyList = new ArrayList<>();
+    private final List<String> dynamicKeyList = new ArrayList<>();
+    private final List<String> NO_ARGS_TAB_COMPLETE = new ArrayList<>(Arrays.asList("static", "dynamic"));
 
     // Const
     public MemeCommand(Main main) {
@@ -47,12 +53,6 @@ public class MemeCommand implements TabExecutor {
                               @NonNull String label,
                               String[] args) {
         config = main.getConfig();
-        Player player;
-
-        // Check if caller is player
-        if (sender instanceof Player) {
-            player = (Player) sender;
-        }
 
         // Check if caller has permission to run command
         if (!(sender.isOp() || sender.hasPermission("wycre.meme") || sender instanceof ConsoleCommandSender)) {
@@ -66,7 +66,7 @@ public class MemeCommand implements TabExecutor {
             if (args.length == 0) {
                 getMessageLists(true); // Generate the list of static strings
                 String key = getRandomKey(true); // get random key from static strings map
-                String message = StringManagement.color(staticMap.get(key)); // get string with key and add color
+                String message = staticMap.get(key); // get string with key and add color
                 main.getServer().broadcastMessage(message); // broadcast message
                 return true;
             } // Broadcast random static message
@@ -74,34 +74,44 @@ public class MemeCommand implements TabExecutor {
             // Choose static message
             if (args[0].equalsIgnoreCase("static")) {
                 getMessageLists(true);
-                if (!staticMap.containsKey(args[1])) {
+
+                if (args.length < 3) {
                     sender.sendMessage(MSG_KEY_NULL);
+                    return true;
+                } // missing key
+
+                if (!staticMap.containsKey(args[1])) {
+                    sender.sendMessage(MSG_KEY_INVALID);
                     return true;
                 } // Bad key
 
-                String message = StringManagement.color(staticMap.get(args[1])); // get string with key and add color
+                String message = staticMap.get(args[1]); // get string with key and add color
 
-                if (args[2].equalsIgnoreCase("preview")) {
-                    sender.sendMessage(message);
-                } else main.getServer().broadcastMessage(message);
+                main.getServer().broadcastMessage(message);
                 return true;
             } // Handle manual message selection
 
             // Choose dynamic message
             if (args[0].equalsIgnoreCase("dynamic")) {
                 getMessageLists(false);
-                if (!dynamicMap.containsKey(args[1])) {
+
+                if (args.length < 3) {
                     sender.sendMessage(MSG_KEY_NULL);
                     return true;
+                } // missing key
+
+                if (!dynamicMap.containsKey(args[1])) {
+                    sender.sendMessage(MSG_KEY_INVALID);
+                    return true;
                 } // Bad key
-                String message = StringManagement.color(dynamicMap.get(args[1])); // get string with key and add color
+
+
+                String message = dynamicMap.get(args[1]); // get string with key and add color
                 String dynRep = StringManagement.argsToString(2, args); // get the replacement for %fill%
 
                 String fMessage = message.replaceAll("%fill%", dynRep);
 
-                if (args[3].equalsIgnoreCase("preview")) {
-                    sender.sendMessage(fMessage);
-                } else main.getServer().broadcastMessage(fMessage);
+                main.getServer().broadcastMessage(fMessage);
                 return true;
             }
 
@@ -114,7 +124,7 @@ public class MemeCommand implements TabExecutor {
             else {
                 getMessageLists(false); // Generate the list of static strings
                 String key = getRandomKey(false); // get random key from static strings map
-                String message = StringManagement.color(staticMap.get(key)); // get string with key and add color
+                String message = dynamicMap.get(key); // get string with key and add color
                 String dynRep = StringManagement.argsToString(0, args); // get the replacement for %fill%
 
                 String fMessage = message.replaceAll("%fill%", dynRep);
@@ -132,35 +142,56 @@ public class MemeCommand implements TabExecutor {
                                       @NonNull Command command,
                                       @NonNull String alias,
                                       String[] args) {
+        if (args.length == 1) {
 
-        //TODO logic for handling tab completions for messages
+            List<String> message = NO_ARGS_TAB_COMPLETE;
 
+            for (Player p : main.getServer().getOnlinePlayers()) {
+                message.add(p.getDisplayName());
+            }
+
+            return message;
+        } // returns list of players and "static" + "dynamic"
+
+        else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("static")) {
+                return staticKeyList;
+            }
+            if (args[0].equalsIgnoreCase("dynamic")) {
+                return dynamicKeyList;
+            }
+        }
         return null;
     }
 
 
     // Misc Methods
     /**
-     * Obtain list of strings from config.yml, Fill sthe instanced map
+     * Obtain list of strings from config.yml, Fill the instanced map
      * @param isStatic true: will pull from staticMessages <br> false: will pull from dynamic messages
      */
     private void getMessageLists(boolean isStatic) {
-        Map<String, String> map;
-
         // static logic
         if (isStatic) {
             List<String> staticList = config.getStringList(MEME_STATIC);
             // Loop through List, fix strings within, store in map
             for (String current : staticList) {
                 String[] split = current.split(": ",2);
-                staticMap.put(split[0], split[1]);
+                staticMap.put(split[0], StringManagement.color(split[1]));
                 staticKeyList.add(split[0]);
             }
         }
 
         // dynamic logic
         else {
-            //TODO finish this
+            List<String> dynList = config.getStringList(MEME_DYNAMIC);
+            // Loop through list. Separate key and values
+            for (String current : dynList) {
+                String[] cSplit = current.split(": ", 2);
+                dynamicMap.put(cSplit[0], StringManagement.color(cSplit[1]));
+                dynamicKeyList.add(cSplit[0]);
+            }
+
         }
 
     }
@@ -169,10 +200,10 @@ public class MemeCommand implements TabExecutor {
         Random       random    = new Random();
         List<String> keys;
         if (isStatic) {
-            keys = new ArrayList<String>(staticMap.keySet());
+            keys = new ArrayList<>(staticMap.keySet());
         }
         else {
-            keys = new ArrayList<String>(dynamicMap.keySet());
+            keys = new ArrayList<>(dynamicMap.keySet());
         }
         return keys.get( random.nextInt(keys.size()) );
 

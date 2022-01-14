@@ -5,3 +5,7 @@ api-version: 1.18
 authors: [ wycre ]
 description: Adds a command that will broadcast a random message specified in config.yml. With a number of variatons.
 website: www.wycre.net
+commands:
+  meme:
+    description: Broadcast a random humorous message to the server
+    usage: /<command> [fill/static/dynamic] [message key] [fill]

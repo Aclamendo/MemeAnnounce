@@ -1,7 +1,7 @@
 package net.wycre.memeannounce;
 
+import net.wycre.memeannounce.commands.MemeCommand;
 import net.wycre.memeannounce.utils.ConfigChecker;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -9,6 +9,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.logging.Logger;
+
+
+/**
+ * TODO:
+ *  - Properly implement config validation
+ *  - properly implement config reloading
+ */
 
 public final class Main extends JavaPlugin {
 
@@ -33,7 +40,11 @@ public final class Main extends JavaPlugin {
         else { */
             saveDefaultConfig();
             validConfig = true;
+        MemeCommand meme = new MemeCommand(this);
 
+        getCommand("meme").setExecutor(meme);
+
+        getCommand("meme").setTabCompleter(meme);
 
             // Instantiate command classes
 
