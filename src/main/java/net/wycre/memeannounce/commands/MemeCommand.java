@@ -26,15 +26,18 @@ public class MemeCommand implements TabExecutor {
     private final Main main;
     private FileConfiguration config;
     private Logger log;
-    private Map<String, String> staticMessage;
-    private Map<String, String> dynamicMessage;
-    private List<String> staticMessageList;
+    private Map<String, String> staticMap;
+    private Map<String, String> dynamicMap;
+    private List<String> staticKeyList;
+    private List<String> dynamicKeyList;
 
     // Const
     public MemeCommand(Main main) {
         this.main = main;
         this.config = main.getConfig();
         this.log = main.getLogger();
+        getMessageLists(true);
+        getMessageLists(false);
     }
 
     // Command Logic
@@ -59,59 +62,84 @@ public class MemeCommand implements TabExecutor {
 
         // Check for /meme name
         if (command.getName().equalsIgnoreCase("meme")) {
+            // No args specified gets random static
+            if (args.length == 0) {
+                getMessageLists(true); // Generate the list of static strings
+                String key = getRandomKey(true); // get random key from static strings map
+                String message = StringManagement.color(staticMap.get(key)); // get string with key and add color
+                main.getServer().broadcastMessage(message); // broadcast message
+                return true;
+            } // Broadcast random static message
 
-            /*
-            * TODO: logic paths
-            *  - args[0] not set:
-            *    - get random key
-            *    - get string from static map using key
-            *    - convert string to color and broadcast
-            *  - args[0] == static:
-            *    - display tab completions from staticMessageList
-            *    - staticMessage.containsKey(args[1]) must return true
-            *    - if args[2] == preview:
-            *      - send staticMessage.get(args[1]) to sender
-            *    - else:
-            *      - broadcast staticMessage.get(args[1])
-            *  - args[0] == dynamic:
-            *    - display tab completions from dynamicMessageList
-            *    - dynamicMessage.containsKey(args[1]) must return true
-            *    - set dynamic replacement to args[2]
-            *    - replace all instances of "%fill%" with dynamic replacement with String.replace
-            *    - if args[3] == preview:
-            *      - send dynamicMessage.get(args[1]) with replacements to sender
-            *    - else:
-            *      - broadcast dynamicMessage.get(args[1]) with replacements
-            *  - args[0] == help:
-            *    - send help message
-            *  - args[0] else:
-            *    - [default to dynamic selection]
-            *    - set dynamic replacement to string in rest of args
-            *    - get random key
-            *    - get string from dynamic map using key
-            *    - replace all instances of "%fill%" with dynamic replacement with String.replace
-            *    - broadcast string
-            */
+            // Choose static message
+            if (args[0].equalsIgnoreCase("static")) {
+                getMessageLists(true);
+                if (!staticMap.containsKey(args[1])) {
+                    sender.sendMessage(MSG_KEY_NULL);
+                    return true;
+                } // Bad key
 
+                String message = StringManagement.color(staticMap.get(args[1])); // get string with key and add color
 
+                if (args[2].equalsIgnoreCase("preview")) {
+                    sender.sendMessage(message);
+                } else main.getServer().broadcastMessage(message);
+                return true;
+            } // Handle manual message selection
+
+            // Choose dynamic message
+            if (args[0].equalsIgnoreCase("dynamic")) {
+                getMessageLists(false);
+                if (!dynamicMap.containsKey(args[1])) {
+                    sender.sendMessage(MSG_KEY_NULL);
+                    return true;
+                } // Bad key
+                String message = StringManagement.color(dynamicMap.get(args[1])); // get string with key and add color
+                String dynRep = StringManagement.argsToString(2, args); // get the replacement for %fill%
+
+                String fMessage = message.replaceAll("%fill%", dynRep);
+
+                if (args[3].equalsIgnoreCase("preview")) {
+                    sender.sendMessage(fMessage);
+                } else main.getServer().broadcastMessage(fMessage);
+                return true;
+            }
+
+            // Help message
+            if (args[0].equalsIgnoreCase("help")) {
+                helpMessage(sender);
+            }
+
+            // if an arg is present, default to dynamic
+            else {
+                getMessageLists(false); // Generate the list of static strings
+                String key = getRandomKey(false); // get random key from static strings map
+                String message = StringManagement.color(staticMap.get(key)); // get string with key and add color
+                String dynRep = StringManagement.argsToString(0, args); // get the replacement for %fill%
+
+                String fMessage = message.replaceAll("%fill%", dynRep);
+
+                main.getServer().broadcastMessage(fMessage); // broadcast message
+            }
+            return true;
         }
-
-
-
-
-
-
         return false;
     }
 
+
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+    public List<String> onTabComplete(@NonNull CommandSender sender,
+                                      @NonNull Command command,
+                                      @NonNull String alias,
+                                      String[] args) {
+
+        //TODO logic for handling tab completions for messages
+
         return null;
     }
 
 
     // Misc Methods
-
     /**
      * Obtain list of strings from config.yml, Fill sthe instanced map
      * @param isStatic true: will pull from staticMessages <br> false: will pull from dynamic messages
@@ -125,11 +153,10 @@ public class MemeCommand implements TabExecutor {
             // Loop through List, fix strings within, store in map
             for (String current : staticList) {
                 String[] split = current.split(": ",2);
-                staticMessage.put(split[0], split[1]);
-                staticMessageList.add(split[0]);
+                staticMap.put(split[0], split[1]);
+                staticKeyList.add(split[0]);
             }
         }
-
 
         // dynamic logic
         else {
@@ -138,28 +165,21 @@ public class MemeCommand implements TabExecutor {
 
     }
 
-    private static String catStrings(int firstArgIndex, String[] strings) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(strings[firstArgIndex]); // Create initial word
-        for (int i = firstArgIndex+1; i < strings.length; i++) { // Add all other words
-            stringBuilder.append(": ").append(strings[i]);
-        } // Add all other words
-        // convert the stringBuilder into a string
-        return stringBuilder.toString();
-    }
-
     private String getRandomKey(boolean isStatic) {
+        Random       random    = new Random();
+        List<String> keys;
         if (isStatic) {
-            Random       random    = new Random();
-            List<String> keys      = new ArrayList<String>(staticMessage.keySet());
-            return keys.get( random.nextInt(keys.size()) );
+            keys = new ArrayList<String>(staticMap.keySet());
         }
         else {
-            Random       random    = new Random();
-            List<String> keys      = new ArrayList<String>(dynamicMessage.keySet());
-            return keys.get( random.nextInt(keys.size()) );
+            keys = new ArrayList<String>(dynamicMap.keySet());
         }
+        return keys.get( random.nextInt(keys.size()) );
 
+    }
+
+    private static void helpMessage(CommandSender sender) {
+        sender.sendMessage("HELP MESSAGE"); //TODO make help context
     }
 
 }

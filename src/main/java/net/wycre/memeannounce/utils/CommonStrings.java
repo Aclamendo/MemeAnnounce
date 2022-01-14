@@ -25,6 +25,7 @@ public class CommonStrings {
     public final static String ARG_LESS_THAN_ONE = ChatColor.RED + "Line number must be greater than zero!";
     public final static String MISSING_LINE_ARG = ChatColor.RED + "Line number must be set!";
     public final static String MISSING_TEXT_ARG = ChatColor.RED + "You must specify some text!";
+    public final static String MSG_KEY_NULL = ChatColor.RED + "That is not a valid message key!";
 
     /**
      * If the command is not applicable to a given item
