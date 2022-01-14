@@ -27,6 +27,7 @@ public class CommonStrings {
     public final static String MISSING_TEXT_ARG = ChatColor.RED + "You must specify some text!";
     public final static String MSG_KEY_INVALID = ChatColor.RED + "That is not a valid message key!";
     public final static String MSG_KEY_NULL = ChatColor.RED + "No message key was specified!";
+    public final static String PLAYER_HAS_COOLDOWN = ChatColor.RED + "You are still under cooldown: ";
 
     /**
      * If the command is not applicable to a given item

@@ -9,3 +9,24 @@ commands:
   meme:
     description: Broadcast a random humorous message to the server
     usage: /<command> [fill/static/dynamic] [message key] [fill]
+permissions:
+  wycre.meme.static:
+    description: use of static message sending
+    default: not op
+  wycre.meme.dynamic:
+    description: use of dynamic message sending
+    default: not op
+  wycre.meme.choose:
+    description: allows user to pick the message to be sent
+    default: op
+  wycre.meme.cooldown:
+    description: bypasses the cooldown associated with the command
+    default: op
+  wycre.meme.*:
+    description: wildcard
+    default: op
+    children:
+      wycre.meme.static: true
+      wycre.meme.dynamic: true
+      wycre.meme.choose: true
+      wycre.meme.cooldown: true
